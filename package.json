@@ -1,0 +1,33 @@
+{
+  "name": "jscoop",
+  "version": "0.0.0",
+  "description": "Cooperative Multitasking Lock and Job Control Library",
+  "main": "src/index.js",
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "locking",
+    "cooperative",
+    "multitasking",
+    "queue",
+    "condition",
+    "batch",
+    "job",
+    "event"
+  ],
+  "author": "Justin Mayfield",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mayfield/jscoop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mayfield/jscoop/issues"
+  },
+  "homepage": "https://github.com/mayfield/jscoop#readme"
+}
