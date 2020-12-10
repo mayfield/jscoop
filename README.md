@@ -40,7 +40,7 @@ the other submodules if you only want some of the functionality.
     import * as coop from 'jscoop/src/coop.js';
 
     (async function() {
-        const sem = coop.Semaphore(2);
+        const sem = new coop.Semaphore(2);
         await sem.acquire();
         await sem.acquire();
         await sem.acquire(); // blocks
