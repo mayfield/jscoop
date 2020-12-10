@@ -26,12 +26,19 @@ export class Future extends Promise {
 
     /**
      * Indicates if the Future is fullfilled.
+     *
      * @returns {boolean}
      */
     done() {
         return !this._pending;
     }
 
+    /**
+     * Return the result of a fulfilled Future.  If the Future is not fulfilled
+     * it will throw an Error.
+     *
+     * @returns {*}
+     */
     result() {
         if (this._pending) {
             throw new Error('Unfulfilled Awaitable');
@@ -42,6 +49,12 @@ export class Future extends Promise {
         return self._result;
     }
 
+    /**
+     * Return the Error of a fulfilled but rejected Future.  If the Future is not
+     * fulfilled it will throw an Error.
+     *
+     * @returns {Error}
+     */
     error() {
         if (this._pending) {
             throw new Error('Unfulfilled Awaitable');
@@ -49,6 +62,13 @@ export class Future extends Promise {
         return self._error;
     }
 
+    /**
+     * Set the result of a Future and resolve it.  The Future will be put into
+     * the fulfilled state and any functions awaiting the result will be resumed
+     * on the next event loop tick.
+     *
+     * @param {*} result - Any value that should be passed to awaiters.
+     */
     setResult(result) {
         if (!this._pending) {
             throw new Error('Already fulfilled');
@@ -58,6 +78,13 @@ export class Future extends Promise {
         this._resolve(result);
     }
 
+    /**
+     * Set the Error of a Future and reject it.  The Future will be put into
+     * the fulfilled state and any functions awaiting the result will be resumed
+     * on the next event loop tick.
+     *
+     * @param {Error} e - A valid Error that will be thrown to awaiters. 
+     */
     setError(e) {
         if (!this._pending) {
             throw new Error('Already fulfilled');

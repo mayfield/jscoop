@@ -2,10 +2,22 @@ import {Future} from './futures.js';
 import * as locks from './locks.js';
 
 
+/**
+ * Indicates that the queue is empty.
+ */
 export class QueueEmpty extends Error {}
+
+/**
+ * Indicates that the queue is full.
+ */
 export class QueueFull extends Error {}
 
 
+/**
+ * A classic producer/consumer construct for regulating work.
+ *
+ * @param {Number} [maxsize=0] - The number of elements allowed to be stored before blocking.
+ */
 export class Queue {
     constructor(maxsize=0) {
         this._maxsize = maxsize;
@@ -35,18 +47,30 @@ export class Queue {
         }
     }
 
+    /**
+     *  @returns {Number} The number of items waiting to be dequeued.
+     */
     qsize() {
         return this._queue.length;
     }
 
+    /**
+     *  @returns {Number} The maximum number of items that can be enqueued.
+     */
     get maxsize() {
         return this._maxsize;
     }
 
+    /**
+     *  @returns {boolean} {@link true} if no items are enqueued.
+     */
     empty() {
         return this._queue.length === 0;
     }
 
+    /**
+     *  @returns {boolean} {@link true} if a call to [enqueue]{@link Queue#enqueue} would block.
+     */
     full() {
         if (this._maxsize <= 0) {
             return false;
@@ -55,49 +79,71 @@ export class Queue {
         }
     }
 
-    async put(item) {
-        while (this.full()) {
-            const putter = new Future();
-            this._putters.push(putter);
-            try {
-                await putter;
-            } catch(e) {
-                if (!this.full()) {
-                    this._wakeupNext(this._putters);
+    /**
+     * @typedef {Object} PutOptions
+     * @property {boolean} [noWait] - Set to {@link true} if the call should not block.  If the call
+     *                                can not complete without blocking then {@link QueueFull} is thrown.
+     */
+
+    /**
+     * Place a new item in the queue if it is not full.  Otherwise block until space is
+     * available or if {@link options.noWait} is {@link true} throw {@link QueueFull}.
+     *
+     * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
+     * @param {PutOptions} [options]
+     */
+    async put(item, options={}) {
+        if (!options.noWait) {
+            while (this.full()) {
+                const putter = new Future();
+                this._putters.push(putter);
+                try {
+                    await putter;
+                } catch(e) {
+                    if (!this.full()) {
+                        this._wakeupNext(this._putters);
+                    }
+                    throw e;
                 }
-                throw e;
             }
         }
-        return this.putNoWait(item);
-    }
-
-    putNoWait(item) {
         if (this.full()) {
             throw new QueueFull();
         }
-        this._put(item);
+        this._put.apply(this, arguments);
         this._unfinished_tasks++;
         this._finished.clear();
         this._wakeupNext(this._getters);
     }
 
-    async get() {
-        while (this.empty()) {
-            const getter = new Future();
-            this._getters.push(getter);
-            try {
-                await getter;
-            } catch(e) {
-                if (!this.empty()) {
-                    this._wakeupNext(this._getters);
+    /**
+     * @typedef {Object} GetOptions
+     * @property {boolean} [noWait] - Set to {@link true} if the call should not block.  If the call
+     *                                can not complete without blocking then {@link QueueEmpty} is thrown.
+     */
+
+    /**
+     * Get an item from the queue if it is not empty.  Otherwise block until an item is available or
+     * if {@link options.noWait} is {@link true} then {@link QueueEmpty} will be thrown.
+     *
+     * @param {GetOptions} [options]
+     * @returns {*} An item from the head of the queue.
+     */
+    async get(options={}) {
+        if (!options.noWait) {
+            while (this.empty()) {
+                const getter = new Future();
+                this._getters.push(getter);
+                try {
+                    await getter;
+                } catch(e) {
+                    if (!this.empty()) {
+                        this._wakeupNext(this._getters);
+                    }
+                    throw e;
                 }
-                throw e;
             }
         }
-        return this.getNoWait();
-    }
-
-    getNoWait() {
         if (this.empty()) {
             throw new QueueEmpty();
         }
@@ -106,6 +152,13 @@ export class Queue {
         return item;
     }
 
+    /**
+     * Decrement the number of pending tasks.  Called by consumers after completing
+     * their use of a dequeued item to indicate that processing has finished.
+     *
+     * When all dequeued items have been accounted for with an accompanying call to
+     * this function [join]{@link Queue#join} will unblock.
+     */
     taskDone() {
         if (this._unfinishedTasks <= 0) {
             throw new Error('Called too many times');
@@ -116,6 +169,10 @@ export class Queue {
         }
     }
 
+    /**
+     * Will block until all items are dequeued and for every item that was dequeued a call
+     * was made to [taskdone]{@link Queue#taskDone}.
+     */
     async join() {
         if (this._unfinishedTasks > 0) {
             await this._finished.wait();
@@ -124,8 +181,12 @@ export class Queue {
 }
 
 
+/**
+ * A type of queue that lets the produce control the ordering of pending items
+ * with a priority argument.
+ */
 export class PriorityQueue extends Queue {
-    _put(item, prio) {
+    _put(item, _, prio) {
         this._queue.push([prio, item]);
         this._queue.sort((a, b) => b[0] - a[0]);
     }
@@ -133,9 +194,27 @@ export class PriorityQueue extends Queue {
     _get() {
         return this._queue.pop()[1];
     }
+
+    /**
+     * Place a new item in the queue if it is not full.  Otherwise block until space is
+     * available or if {@link options.noWait} is {@link true} throw {@link QueueFull}.
+     *
+     * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
+     * @param {Number} prio - The sort order for this item.
+     * @param {PutOptions} [options]
+     */
+    async put(item, prio, options={}) {
+        return await super.put(item, options, prio);
+    }
 }
 
 
+/**
+ * A Last-in-First-out Queue.  Items are dequeued in the opposite order that
+ * they are enqueued.
+ * 
+ * @extends Queue
+ */
 export class LifoQueue extends Queue {
     _get() {
         return this._queue.pop();
