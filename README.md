@@ -24,7 +24,7 @@ for details.
 import * as coop from 'jscoop';
 
 (async function() {
-    const sem = coop.Semaphore(2);
+    const sem = new coop.Semaphore(2);
     await sem.acquire();
     await sem.acquire();
     await sem.acquire(); // blocks
@@ -37,10 +37,10 @@ can find them and `import` the full path to the `coop.js` file, or one of
 the other submodules if you only want some of the functionality.
 ```html
 <script type="module">
-    import * from 'jscoop/src/coop.js';
+    import * as coop from 'jscoop/src/coop.js';
 
     (async function() {
-        const sem = locks.Semaphore(2);
+        const sem = coop.Semaphore(2);
         await sem.acquire();
         await sem.acquire();
         await sem.acquire(); // blocks
