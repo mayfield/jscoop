@@ -1,4 +1,7 @@
 
+/**
+ * A Promise like object that allows for easy external fulfillment.
+ */
 export class Future extends Promise {
     constructor() {
         let _resolve;
@@ -21,6 +24,10 @@ export class Future extends Promise {
         return 'Future';
     }
 
+    /**
+     * Indicates if the Future is fullfilled.
+     * @returns {boolean}
+     */
     done() {
         return !this._pending;
     }

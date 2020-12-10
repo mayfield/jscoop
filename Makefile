@@ -1,5 +1,7 @@
 PACKAGES := node_modules/.build
+DOCS := docs/.build
 NPATH := node_modules/.bin
+SRC := $(shell find src -type f -name '*.js')
 
 default: test
 
@@ -7,10 +9,13 @@ $(PACKAGES): package.json
 	npm install
 	touch $@
 
-test: $(PACKAGES)
+test: $(PACKAGES) $(SRC)
 	npm test
 
-lint:
+docs: $(PACKAGES) $(SRC)
+	npm run docs
+
+lint: $(SRC)
 	$(NPATH)/eslint src
 
-.PHONY: test
+.PHONY: test lint docs

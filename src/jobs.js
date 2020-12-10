@@ -46,3 +46,108 @@ export class BufferedWork {
         }
     }
 }
+
+
+const rateLimiterInstances = {};
+
+export class RateLimiter {
+    static async singleton(label, spec) {
+        if (!rateLimiterInstances[label]) {
+            rateLimiterInstances[label] = new this(label, spec);
+        }
+        const instance = rateLimiterInstances[label];
+        await instance._init;
+        return instance;
+    }
+
+    constructor(label, spec) {
+        this.version = 1;
+        this.label = label;
+        this.spec = spec;
+        this._init = this.loadState();
+    }
+
+    // Subclasses can override to use permanent storage like IndexedDB.
+    async getState() {
+        return this._state;
+    }
+
+    // Virtual: can override to use permanent storage like IndexedDB.
+    async setState(state) {
+        this._state = state;
+    }
+
+    async wait() {
+        const spreadDelay = this.state.spec.period / this.state.spec.limit;
+        this.maybeReset();
+        // Perform as loop because this should work with concurreny too.
+        while (this.state.count >= this.state.spec.limit ||
+               (this.state.spec.spread && Date.now() - this.state.last < spreadDelay)) {
+            await sleep(50);
+            this.maybeReset();
+        }
+    }
+
+    increment() {
+        this.state.count++;
+        this.state.last = Date.now();
+        this._saveState();  // bg okay
+    }
+
+    toString() {
+        return `RateLimiter [${this.label}]: period: ${this.state.spec.period / 1000}s, ` +
+            `usage: ${this.state.count}/${this.state.spec.limit}`;
+    }
+
+    async _loadState() {
+        const state = await this.getState();
+        if (!state || state.version !== this.version) {
+            this.state = {
+                version: this.version,
+                first: Date.now(),
+                last: 0,
+                count: 0,
+                spec: this.spec
+            };
+            await this._saveState();
+        } else {
+            this.state = state;
+        }
+    }
+
+    async _saveState() {
+        await this.setState(this.state);
+    }
+
+    _maybeReset() {
+        if (Date.now() - this.state.first > this.state.spec.period) {
+            console.info(`Reseting rate limit period: ${this}`);
+            this.state.count = 0;
+            this.state.first = Date.now();
+            this._saveState();  // bg okay
+        }
+    }
+}
+
+
+class RateLimiterGroup extends Array {
+    async add(label, spec) {
+        this.push(await RateLimiter.singleton(label, spec));
+    }
+
+    async wait() {
+        await Promise.all(this.map(x => x.wait()));
+    }
+
+    increment() {
+        console.group('RateLimiterGroup');
+        try {
+            for (const x of this) {
+                x.increment();
+                console.debug(`Increment: ${x}`);
+            }
+        } finally {
+            console.groupEnd();
+        }
+    }
+}
