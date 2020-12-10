@@ -1,22 +1,25 @@
 {
   "name": "jscoop",
   "version": "0.0.0",
-  "description": "Cooperative Multitasking Lock and Batch Processing Library",
-  "main": "src/index.js",
+  "description": "Cooperative Multitasking Lock and Jobs Processing",
+  "module": "src/coop.js",
   "type": "module",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/.bin/jest --config .jest.config.mjs"
   },
   "keywords": [
     "lock",
+    "event",
     "semaphore",
     "cooperative",
     "multitasking",
     "queue",
+    "lifoqueue",
+    "priorityqueue",
     "condition",
-    "batch",
-    "job",
-    "event"
+    "producer",
+    "consumer",
+    "jobs"
   ],
   "author": "Justin Mayfield",
   "license": "MIT",

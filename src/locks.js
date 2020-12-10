@@ -1,6 +1,6 @@
 /* eslint no-unsafe-finally: "off" */
 
-import {CancelledError, Future} from './futures.js';
+import {Future} from './futures.js';
 
 
 export class Condition {
@@ -29,17 +29,7 @@ export class Condition {
                 this._waiters.splice(this._waiters.indexOf(f), 1);
             }
         } finally {
-            for (;;) {
-                try {
-                    await this.acquire();
-                    break;
-                } catch(e) {
-                    if (e instanceof CancelledError) {
-                        continue;
-                    }
-                    throw e;
-                }
-            }
+            await this.acquire();
         }
     }
 

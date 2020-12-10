@@ -1,12 +1,12 @@
 jscoop
 ========
-JavaScript Cooperative Multitasking Locks and Batch Processing
+JavaScript Cooperative Multitasking Locks and Jobs Processing
 
-This is port of Python's asyncio locks, futures and queues modules along with batch
-processing routines.
+This is port of Python's asyncio locks, futures and queues modules along
+with batch processing routines.
 
 
-Compat
+Compatibility
 --------
-Any modern browser
-Any modern NodeJS
+* Any modern browser
+* Any modern NodeJS
