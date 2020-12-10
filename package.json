@@ -4,6 +4,13 @@
   "description": "Cooperative Multitasking Lock and Jobs Processing",
   "module": "src/coop.js",
   "type": "module",
+  "exports": {
+    ".": "./src/coop.js",
+    "./locks": "./src/locks.js",
+    "./queues": "./src/queues.js",
+    "./jobs": "./src/jobs.js",
+    "./futures": "./src/futures.js"
+  },
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/.bin/jest --config .jest.config.mjs"
   },

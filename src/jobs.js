@@ -2,7 +2,7 @@
 import {Event} from './locks.js';
 
 
-export class Buffered {
+export class BufferedWork {
     constructor(size, options={}) {
         this.permitErrors = options.permitErrors;
         this.size = size;
