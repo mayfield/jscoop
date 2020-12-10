@@ -1,7 +1,6 @@
 /* eslint no-unsafe-finally: "off" */
 
-import {CancelledError} from './future.js';
-import * as Future from './future.js';
+import {CancelledError, Future} from './futures.js';
 
 
 export class Condition {
@@ -23,7 +22,7 @@ export class Condition {
         this.release();
         try {
             const f = new Future();
-            self._waiters.push(f);
+            this._waiters.push(f);
             try {
                 return await f;
             } finally {
@@ -126,7 +125,7 @@ export class Semaphore {
         }
     }
     
-    locked(self) {
+    locked() {
         return this._value === 0;
     }
 
@@ -137,7 +136,7 @@ export class Semaphore {
             try {
                 await f;
             } catch(e) {
-                if (self._value > 0) {
+                if (this._value > 0) {
                     this._wakeUpNext();
                 }
                 throw e;
@@ -167,7 +166,7 @@ export class Event {
     set() {
         if (!this._isSet) {
             this._isSet = true;
-            for (const f of self._waiters) {
+            for (const f of this._waiters) {
                 f.setResult(true);
             }
         }

@@ -1,4 +1,4 @@
-import * as Future from './future.js';
+import {Future} from './futures.js';
 import * as locks from './locks.js';
 
 
@@ -58,7 +58,7 @@ export class Queue {
     async put(item) {
         while (this.full()) {
             const putter = new Future();
-            self._putters.push(putter);
+            this._putters.push(putter);
             try {
                 await putter;
             } catch(e) {

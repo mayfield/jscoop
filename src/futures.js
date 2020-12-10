@@ -7,13 +7,26 @@ const CANCELLED = Symbol('cancelled');
 const FINISHED = Symbol('finished');
 
 
-export default class Future extends Promise {
+export class Future extends Promise {
     constructor() {
+        let _resolve;
+        let _reject;
         super((resolve, reject) => {
-            this._resolve = resolve;
-            this._reject = reject;
+            _resolve = resolve;
+            _reject = reject;
         });
+        this._resolve = _resolve;
+        this._reject = _reject;
         this._state = PENDING;
+    }
+
+    // Allow use of then/catch chaining.
+    static get [Symbol.species]() {
+        return Promise;
+    }
+
+    get [Symbol.toStringTag]() {
+        return 'Future';
     }
 
     cancel() {

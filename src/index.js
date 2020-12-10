@@ -1,6 +1,6 @@
-import Lock from './lock.js';
+import * as queues from './queues.js';
 
 // XXX figure out clean way to interface with legacy GC that imports us.
-self.jscoop = {
-    Lock
-};
+//self.jscoop = {
+//    queues
+//};
