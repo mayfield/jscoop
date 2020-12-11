@@ -187,20 +187,13 @@ export class RateLimiter {
             await this._sleep(50);
             this._maybeReset();
         }
+        this.state.count++;
+        this.state.last = Date.now();
+        this._saveState();  // bg okay
     }
 
     _sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    /**
-     * Increment use of the rate limiter.  This indicates that a usage occurred and the limit
-     * should respond accordingly for the next, or existing, calls to {@link RateLimter#wait}.
-     */
-    increment() {
-        this.state.count++;
-        this.state.last = Date.now();
-        this._saveState();  // bg okay
     }
 
     toString() {
@@ -230,7 +223,6 @@ export class RateLimiter {
 
     _maybeReset() {
         if (Date.now() - this.state.first > this.state.spec.period) {
-            console.info(`Reseting rate limit period: ${this}`);
             this.state.count = 0;
             this.state.first = Date.now();
             this._saveState();  // bg okay
@@ -261,20 +253,5 @@ export class RateLimiterGroup extends Array {
      */
     async wait() {
         await Promise.all(this.map(x => x.wait()));
-    }
-
-    /**
-     * Increment usage for all the limiters in this group.
-     */
-    increment() {
-        console.group('RateLimiterGroup');
-        try {
-            for (const x of this) {
-                x.increment();
-                console.debug(`Increment: ${x}`);
-            }
-        } finally {
-            console.groupEnd();
-        }
     }
 }
