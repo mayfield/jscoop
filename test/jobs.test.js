@@ -25,20 +25,20 @@ test('RateLimiter nonconcurrent block', async () => {
         limit: 1
     });
     await rl.wait();
-    rl.increment();
     expect(await Promise.race([timeout(100), rl.wait()])).toBe('timeout');
 });
 
 test('RateLimiter concurrent block', async () => {
     const rl = new jobs.RateLimiter('test', {
-        period: 3600 * 1000, // enough to cause jest to timeout on fail
-        limit: 1
+        period: 400,
+        limit: 2
     });
-    const w1 = rl.wait().then(() => rl.increment());
-    const w2 = rl.wait().then(() => rl.increment());
-    const w3 = rl.wait().then(() => rl.increment());
-    expect(await Promise.race([timeout(100), w1])).toNotBe('timeout');
-    expect(await Promise.race([timeout(100), w2])).toBe('timeout');
-    expect(await Promise.race([timeout(100), w3])).toBe('timeout');
+    const w1 = rl.wait();
+    const w2 = rl.wait();
+    const w3 = rl.wait();
+    expect(await Promise.race([timeout(50), w1])).toBeUndefined();
+    expect(await Promise.race([timeout(50), w2])).toBeUndefined();
+    expect(await Promise.race([timeout(50), w3])).toBe('timeout');
+    await w3; // for testing to no complain
 });
 
