@@ -4,11 +4,15 @@ import * as locks from './locks.js';
 
 /**
  * Indicates that the queue is empty.
+ *
+ * @extends external:Error
  */
 export class QueueEmpty extends Error {}
 
 /**
  * Indicates that the queue is full.
+ *
+ * @extends external:Error
  */
 export class QueueFull extends Error {}
 
@@ -16,7 +20,8 @@ export class QueueFull extends Error {}
 /**
  * A classic producer/consumer construct for regulating work.
  *
- * @param {Number} [maxsize=0] - The number of elements allowed to be stored before blocking.
+ * @see Python's [asyncio.Queue]{@link https://docs.python.org/3/library/asyncio-queue.html}
+ * @param {Number} [maxsize=0] - The number of items allowed to be stored before blocking.
  */
 export class Queue {
     constructor(maxsize=0) {
@@ -57,7 +62,7 @@ export class Queue {
     /**
      *  @returns {Number} The maximum number of items that can be enqueued.
      */
-    get maxsize() {
+    maxsize() {
         return this._maxsize;
     }
 
@@ -182,8 +187,11 @@ export class Queue {
 
 
 /**
- * A type of queue that lets the produce control the ordering of pending items
+ * A subtype of {@link Queue} that lets the producer control the ordering of pending items
  * with a priority argument.
+ *
+ * @see Python's [asyncio.PriorityQueue]{@link https://docs.python.org/3/library/asyncio-queue.html#priority-queue}
+ * @extends Queue
  */
 export class PriorityQueue extends Queue {
     _put(item, _, prio) {
@@ -199,20 +207,21 @@ export class PriorityQueue extends Queue {
      * Place a new item in the queue if it is not full.  Otherwise block until space is
      * available or if {@link options.noWait} is {@link true} throw {@link QueueFull}.
      *
-     * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
      * @param {Number} prio - The sort order for this item.
+     * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
      * @param {PutOptions} [options]
      */
-    async put(item, prio, options={}) {
+    async put(prio, item, options={}) {
         return await super.put(item, options, prio);
     }
 }
 
 
 /**
- * A Last-in-First-out Queue.  Items are dequeued in the opposite order that
+ * A Last-In-First-Out Queue.  Items are dequeued in the opposite order that
  * they are enqueued.
- * 
+ *
+ * @see Python's [asyncio.LifoQueue]{@link https://docs.python.org/3/library/asyncio-queue.html#lifo-queue}
  * @extends Queue
  */
 export class LifoQueue extends Queue {
@@ -220,3 +229,12 @@ export class LifoQueue extends Queue {
         return this._queue.pop();
     }
 }
+
+
+/**
+ * The built in Error object.
+ *
+ * @external Error
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error}
+ */
+

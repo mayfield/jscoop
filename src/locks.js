@@ -14,6 +14,7 @@ import {Future} from './futures.js';
  * await cond.wait(); // will wait for 1000ms
  * // do work...
  * cond.release();
+ * @see Python's [asyncio.Condition]{@link https://docs.python.org/3/library/asyncio-sync.html#condition}
  */
 export class Condition {
 
@@ -30,8 +31,9 @@ export class Condition {
 
     /**
      * Wait until the condition is satisfied.  When multiple awaiters exist they will
-     * be woken up one at a time if {notify} is used.  If {notifyAll} is used then all
-     * awaiters will be woken up.  Once completed the internal {Lock} is reacquired.
+     * be woken up one at a time if [notify]{@link Condition#notify} is used.  If
+     * [notifyAll]{@link Condition#notifyAll} is used then all awaiters will be woken up.
+     * Once completed the internal {@link Lock} is reacquired.
      */
     async wait() {
         if (!this.locked()) {
@@ -83,6 +85,8 @@ export class Condition {
 
 /**
  * A classic multitasking lock mechanism.
+ *
+ * @see Python's [asyncio.Lock]{@link https://docs.python.org/3/library/asyncio-sync.html#lock}
  */
 export class Lock {
     constructor() {
@@ -121,7 +125,6 @@ export class Lock {
 
     /**
      * Release this lock and wake up and calls to [acquire]{@link Lock#acquire}.
-     *
      */
     release() {
         if (!this._locked) {
@@ -143,6 +146,7 @@ export class Lock {
  *
  * @param {Number} [value=1] - The number of simultaneous acquisitions
  *                             this semaphore will permit before blocking.
+ * @see Python's [asyncio.Semaphore]{@link https://docs.python.org/3/library/asyncio-sync.html#semaphore}
  */
 export class Semaphore {
     constructor(value=1) {
@@ -162,7 +166,7 @@ export class Semaphore {
             }
         }
     }
-    
+
     /**
      * Has the semaphore exhausted all acquisitions.
      *
@@ -206,7 +210,9 @@ export class Semaphore {
 
 
 /**
- * A synchronize event
+ * A very simple object for indicating when some event has been triggered.
+ *
+ * @see Python's [asyncio.Event]{@link https://docs.python.org/3/library/asyncio-sync.html#event}
  */
 export class Event {
     constructor() {

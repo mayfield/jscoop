@@ -1,6 +1,9 @@
 
 /**
- * A Promise like object that allows for easy external fulfillment.
+ * A [Promise]{@link external:Promise} like object that allows for easy external fulfillment.
+ * Modeled after Python's [asyncio.Future]{@link https://docs.python.org/3/library/asyncio-future.html}
+ *
+ * @extends external:Promise
  */
 export class Future extends Promise {
     constructor() {
@@ -83,7 +86,7 @@ export class Future extends Promise {
      * the fulfilled state and any functions awaiting the result will be resumed
      * on the next event loop tick.
      *
-     * @param {Error} e - A valid Error that will be thrown to awaiters. 
+     * @param {Error} e - A valid Error that will be thrown to awaiters.
      */
     setError(e) {
         if (!this._pending) {
@@ -94,3 +97,12 @@ export class Future extends Promise {
         this._reject(e);
     }
 }
+
+
+/**
+ * The built in Promise object.
+ *
+ * @external Promise
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise}
+ */
+
