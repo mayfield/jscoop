@@ -1,5 +1,9 @@
 /* eslint no-unsafe-finally: "off" */
 
+/**
+ * @module locks
+ */
+
 import {Future} from './futures.js';
 
 

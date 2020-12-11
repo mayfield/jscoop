@@ -1,3 +1,6 @@
+/**
+ * @module jobs
+ */
 
 import {Event} from './locks.js';
 
@@ -236,7 +239,7 @@ export class RateLimiter {
  *
  * @extends Array
  */
-class RateLimiterGroup extends Array {
+export class RateLimiterGroup extends Array {
 
     /**
      * Add a {RateLimiter} singleton to this group.

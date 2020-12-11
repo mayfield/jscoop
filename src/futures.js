@@ -1,3 +1,6 @@
+/**
+ * @module futures
+ */
 
 /**
  * A [Promise]{@link external:Promise} like object that allows for easy external fulfillment.

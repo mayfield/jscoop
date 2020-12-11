@@ -1,3 +1,7 @@
+/**
+ * @module queues
+ */
+
 import {Future} from './futures.js';
 import * as locks from './locks.js';
 
