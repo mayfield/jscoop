@@ -1,4 +1,3 @@
-//import {jest} from '@jest/globals';
 import * as locks from '../src/locks.js';
 
 function sleep(ms) {

@@ -147,7 +147,7 @@ export class RateLimiter {
         this.version = 1;
         this.label = label;
         this.spec = spec;
-        this._init = this.loadState();
+        this._init = this._loadState();
     }
 
     /**
@@ -183,9 +183,13 @@ export class RateLimiter {
         // Perform as loop because this should work with concurreny too.
         while (this.state.count >= this.state.spec.limit ||
                (this.state.spec.spread && Date.now() - this.state.last < spreadDelay)) {
-            await sleep(50);
+            await this._sleep(50);
             this.maybeReset();
         }
+    }
+
+    _sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**

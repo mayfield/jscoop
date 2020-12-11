@@ -1,4 +1,3 @@
-//import {jest} from '@jest/globals';
 import * as futures from '../src/futures.js';
 
 function sleep(ms) {

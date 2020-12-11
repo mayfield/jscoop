@@ -1,4 +1,3 @@
-//import {jest} from '@jest/globals';
 import * as queues from '../src/queues.js';
 
 test('Queue sanity', () => {
