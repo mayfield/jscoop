@@ -178,13 +178,14 @@ export class RateLimiter {
      * @abstract
      */
     async wait() {
+        await this._init;
         const spreadDelay = this.state.spec.period / this.state.spec.limit;
-        this.maybeReset();
+        this._maybeReset();
         // Perform as loop because this should work with concurreny too.
         while (this.state.count >= this.state.spec.limit ||
                (this.state.spec.spread && Date.now() - this.state.last < spreadDelay)) {
             await this._sleep(50);
-            this.maybeReset();
+            this._maybeReset();
         }
     }
 
