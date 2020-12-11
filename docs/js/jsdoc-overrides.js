@@ -27,6 +27,7 @@
         const anchor = document.getElementById(location.hash.slice(1));
         if (anchor) {
             anchor.classList.add('target');
+            _lastAnchor = anchor;
         }
     }
 

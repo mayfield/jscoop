@@ -105,16 +105,20 @@ h4.name.target::before {
     content: '';
     position: absolute;
     height: 2.5em;
-    border-left: 3px dotted #0088c7;
+    border-left: 3px dotted #004f86;
     margin-left: -1.5em;
     margin-top: -0.6em;
+}
+
+h4.name.target {
+    background-color: #004f86;
 }
 
 nav a {
     transition: background 400ms, color 400ms, padding 400ms;
 }
 nav a.target {
-    background: #0088c7;
+    background: #004f86;
     color: white;
     padding-top: 0.5em;
     padding-bottom: 0.5em;
