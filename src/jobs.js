@@ -206,7 +206,7 @@ export class RateLimiter {
      * state is just local to this instance.
      *
      * @abstract
-     * @returns {Object} Meta data about the current usage
+     * @returns {Object} Meta data about the current usage.
      */
     async getState() {
         return this._state;
@@ -217,6 +217,7 @@ export class RateLimiter {
      * state is just local to this instance.
      *
      * @abstract
+     * @param {Object} state - Meta data about the current state.
      */
     async setState(state) {
         this._state = state;
