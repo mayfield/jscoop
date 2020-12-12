@@ -3,7 +3,7 @@ jscoop
 JavaScript Cooperative Multitasking Locks and Jobs Processing
 
 [![NPM](https://img.shields.io/npm/v/jscoop.svg)](https://www.npmjs.com/package/jscoop)
-[![Docs](https://img.shields.io/badge/docs-api-lightgrey.svg)](https://mayfield.github.io/jscoop/docs/index.html)
+[![Docs](https://img.shields.io/badge/docs-api-lightgrey.svg)](https://mayfield.github.io/jscoop)
 
 This is port of Python's asyncio locks, futures and queues modules along
 with batch processing routines.
