@@ -99,10 +99,10 @@ the other submodules if you only want some of the functionality.</p>
 &lt;/script>
 </code></pre>
 <h2>Examples</h2>
-<p><em>jobs.BufferedWork</em> - Node</p>
+<p><em>jobs.UnorderedWorkQueue</em> - Node</p>
 <pre class="prettyprint source lang-js"><code>import * as jobs from 'jscoop/jobs';
 
-const bufWork = new jobs.BufferedWork(10);
+const bufWork = new jobs.UnorderedWorkQueue({maxPending: 10});
 
 async function sleep(ms) {
     await new Promise(resolve => setTimeout(resolve, ms));

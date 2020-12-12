@@ -115,9 +115,9 @@ export class UnorderedWorkQueue {
 
     async _promote(id) {
         const promise = this._pending.get(id);
-        this._pending.delete(id);
         // Prevent JS from flattening the promise when it's retrieved by wrapping it.
         await this._fulfilled.put({promise});
+        this._pending.delete(id);
         this._maybeReleasePutter();
     }
 
