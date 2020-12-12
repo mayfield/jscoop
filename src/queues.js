@@ -243,4 +243,3 @@ export class LifoQueue extends Queue {
  * @external Error
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error}
  */
-

@@ -34,6 +34,7 @@ import {Queue} from './queues.js';
  * }
  */
 export class UnorderedWorkQueue {
+
     constructor(options={}) {
         this._allowErrors = options.allowErrors;
         this._maxPending = options.maxPending;
@@ -197,7 +198,6 @@ export class RateLimiter {
         this.label = label;
         this.spec = spec;
         this._lock = new Lock();
-        this._wake = new Event();
         this._init = this._loadState();
     }
 
@@ -225,22 +225,36 @@ export class RateLimiter {
     /**
      * Blocks until it is safe to run again.  Note that this routine is concurrency-safe, so some
      * calls for a given context may block longer than expected because of multiple accesses.
-     *
-     * @abstract
      */
     async wait() {
-        await this._init;
-        const spreadDelay = this.state.spec.period / this.state.spec.limit;
-        this._maybeReset();
-        // Perform as loop because this should work with concurreny too.
-        while (this.state.count >= this.state.spec.limit ||
-               (this.state.spec.spread && Date.now() - this.state.last < spreadDelay)) {
-            await this._sleep(50);
-            this._maybeReset();
+        await this._lock.acquire();
+        try {
+            await this._init;
+            await this._wait();
+            await this._increment();
+        } finally {
+            this._lock.release();
         }
+    }
+
+    async _wait() {
+        const elapsed = Date.now() - this.state.first;
+        if (elapsed > this.spec.period) {
+            this.state.count = 0;
+            this.state.first = Date.now();
+            await this._saveState();
+        }
+        if (this.state.count >= this.spec.limit) {
+            await this._sleep(this.spec.period - elapsed);
+        } else if (this.spec.spread) {
+            await this._sleep(this.spec.period / this.spec.limit);
+        }
+    }
+
+    async _increment() {
         this.state.count++;
         this.state.last = Date.now();
-        this._saveState();  // bg okay
+        await this._saveState();
     }
 
     _sleep(ms) {
@@ -248,41 +262,28 @@ export class RateLimiter {
     }
 
     toString() {
-        return `RateLimiter [${this.label}]: period: ${this.state.spec.period / 1000}s, ` +
-            `usage: ${this.state.count}/${this.state.spec.limit}`;
+        return `RateLimiter [${this.label}]: period: ${this.spec.period / 1000}s, ` +
+            `usage: ${this.state.count}/${this.spec.limit}`;
     }
 
     async _loadState() {
-        try {
-            await this._lock.acquire();
-            const state = await this.getState();
-            if (!state || state.version !== this.version) {
-                this.state = {
-                    version: this.version,
-                    first: Date.now(),
-                    last: 0,
-                    count: 0,
-                    spec: this.spec
-                };
-                await this._saveState();
-            } else {
-                this.state = state;
-            }
-        } finally {
-            this._lock.release();
+        const state = await this.getState();
+        if (!state || state.version !== this.version) {
+            this.state = {
+                version: this.version,
+                first: Date.now(),
+                last: 0,
+                count: 0,
+                spec: this.spec
+            };
+            await this._saveState();
+        } else {
+            this.state = state;
         }
     }
 
     async _saveState() {
         await this.setState(this.state);
-    }
-
-    _maybeReset() {
-        if (Date.now() - this.state.first > this.state.spec.period) {
-            this.state.count = 0;
-            this.state.first = Date.now();
-            this._saveState();  // bg okay
-        }
     }
 }
 
@@ -290,9 +291,14 @@ export class RateLimiter {
 /**
  * A grouping for {@link RateLimiter} classes.
  *
- * @extends Array
+ * @extends {@link external:Array}
  */
 export class RateLimiterGroup extends Array {
+
+    constructor() {
+        super();
+        this._lock = new Lock();
+    }
 
     /**
      * Add a {RateLimiter} singleton to this group.
@@ -308,6 +314,20 @@ export class RateLimiterGroup extends Array {
      * Wait for all the limiters in this group to unblock.
      */
     async wait() {
-        await Promise.all(this.map(x => x.wait()));
+        await this._lock.wait();
+        try {
+            await Promise.all(this.map(x => x._wait()));
+            await Promise.all(this.map(x => x._increment()));
+        } finally {
+            this._lock.release();
+        }
     }
 }
+
+
+/**
+ * The built in Array object.
+ *
+ * @external Array
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array}
+ */
