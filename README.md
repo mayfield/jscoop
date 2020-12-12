@@ -54,11 +54,11 @@ the other submodules if you only want some of the functionality.
 
 Examples
 --------
-*jobs.BufferedWork* - Node
+*jobs.UnorderedWorkQueue* - Node
 ```js
 import * as jobs from 'jscoop/jobs';
 
-const bufWork = new jobs.BufferedWork(10);
+const bufWork = new jobs.UnorderedWorkQueue({maxPending: 10});
 
 async function sleep(ms) {
     await new Promise(resolve => setTimeout(resolve, ms));
