@@ -1,8 +1,4 @@
 /**
- * @module futures
- */
-
-/**
  * A [Promise]{@link external:Promise} like object that allows for easy external fulfillment.
  * Modeled after Python's [asyncio.Future]{@link https://docs.python.org/3/library/asyncio-future.html}
  *

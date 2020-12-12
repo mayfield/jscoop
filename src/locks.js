@@ -1,9 +1,5 @@
 /* eslint no-unsafe-finally: "off" */
 
-/**
- * @module locks
- */
-
 import {Future} from './futures.js';
 
 
@@ -11,6 +7,9 @@ import {Future} from './futures.js';
  * A classic multitasking Condition mechanism.
  *
  * @param {Lock} [lock] - A shared lock object that is used to synchronize multiple Conditions.
+ * @borrows {Lock.acquire} as foo
+ * @borrows Lock.release as bar
+ *
  * @example
  * const cond = new Condition();
  * await cond.acquire();
@@ -27,10 +26,37 @@ export class Condition {
             lock = new Lock();
         }
         this._lock = lock;
-        this.locked = lock.locked.bind(lock);
-        this.acquire = lock.acquire.bind(lock);
         this.release = lock.release.bind(lock);
         this._waiters = [];
+    }
+
+    /**
+     * The internal lock state.
+     *
+     * @see [Lock.locked]{@link Lock#locked}
+     *
+     * @returns {boolean}
+     */
+    locked() {
+        return this.lock.locked();
+    }
+
+    /**
+     * Acquire the internal lock.
+     *
+     * @see [Lock.acquire]{@link Lock#acquire}
+     */
+    async acquire() {
+        return await this.lock.acquire();
+    }
+
+    /**
+     * Release the internal lock.
+     *
+     * @see [Lock.release]{@link Lock#release}
+     */
+    release() {
+        return this.lock.release();
     }
 
     /**

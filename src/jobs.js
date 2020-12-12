@@ -1,9 +1,16 @@
+
+import {Event, Lock} from './locks.js';
+import {Queue} from './queues.js';
+
 /**
- * @module jobs
+ * @typedef UnorderedWorkQueueOptions
+ * @type {Object}
+ * @property {Number} [maxPending] - The maximum number of pending promises to enqueue before blocking.
+ * @property {Number} [maxFulfilled] - The maximum number of unclaimed fulfilled results to allow before blocking
+ *                                     any more calls to [put]{@link UnorderedWorkQueue#put}.
+ * @property {boolean} [allowErrors] - When set to {@link true} rejected jobs will just return their
+ *                                     [Error]{@link external:Error} instead of throwing.
  */
-
-import {Event} from './locks.js';
-
 
 /**
  * A job control system that permits up to a fixed number of jobs (awaitables)
@@ -13,89 +20,131 @@ import {Event} from './locks.js';
  * fulfillment of the work.  The results of each enqueue job are yielded in the
  * order they finish, not the order they are enqueued.
  *
- * @param {Number} size - Number of outstanding (unfulfilled) tasks to allow.
+ * @param {UnorderedWorkQueueOptions} [options] -  Unordered work queue options.
+ *
  * @example
- * const sleep = ms => newPromise(r => setTimeout(r, ms));
- * const bw = new BufferedWork(3);
- * await bw.enqueue(sleep(1000));
- * await bw.enqueue(sleep(1000));
- * await bw.enqueue(sleep(1000));
- * await bw.enqueue(sleep(1000)); // blocks for ~1 second waiting
- * for await (const _ of bw) {
+ * const sleep = ms => new Promise(r => setTimeout(r, ms));
+ * const wq = new UnorderedWorkQueue({maxPending: 3});
+ * await wq.put(sleep(1000));
+ * await wq.put(sleep(1000));
+ * await wq.put(sleep(1000));
+ * await wq.put(sleep(1000)); // blocks for ~1 second waiting
+ * for await (const _ of wq) {
  *    // Handle results...
  * }
  */
-export class BufferedWork {
-    constructor(size, options={}) {
-        this.permitErrors = options.permitErrors;
-        this.size = size;
-        this.id = 0;
-        this.pending = new Map();
-        this._waiters = [];
-        this._waker = new Event();
+export class UnorderedWorkQueue {
+    constructor(options={}) {
+        this._allowErrors = options.allowErrors;
+        this._maxPending = options.maxPending;
+        this._idCounter = 0;
+        this._pending = new Map();
+        this._fulfilled = new Queue(options.maxFulfilled);
+        this._putters = [];
+    }
+
+    _canPut() {
+        return (!this._maxPending || this._pending.size < this._maxPending) &&
+            !this._fulfilled.full();
     }
 
     /**
-     * Add a new job to the work queue immediately if a spot is available.  If the
-     * queue is full, wait until a free slot is available.
+     * Add a new job to the work queue immediately if a spot is available.  If
+     * the pending queue or the fulfilled queues are full it will block.
      *
      * @param {external:Promise} promise - The awaitable to enqueue.
      */
-    async enqueue(promise) {
-        if (this.pending.size >= this.size) {
-            const waiter = new Event();
-            this._waiters.push(waiter);
-            await waiter.wait();
+    async put(promise) {
+        if (!this._canPut()) {
+            const ev = new Event();
+            this._putters.push(ev);
+            await ev.wait();
         }
-        const id = this.id++;
-        this.pending.set(id, promise
-            .then(value => ({success: true, value, id}))
-            .catch(value => ({success: false, value, id})));
-        this._waker.set();
+        if (this._pending.size >= this._maxPending || this._fulfilled.full()) {
+            throw new Error("XXX assertion failed in put");
+        }
+        const id = this._idCounter++;
+        this._pending.set(id, promise);
+        promise.finally(() => void this._promote(id));
+    }
+
+    async _promote(id) {
+        const promise = this._pending.get(id);
+        this._pending.delete(id);
+        // Prevent JS from flattening the promise when it's retrieved by wrapping it.
+        await this._fulfilled.put({promise});
+        this._maybeReleasePutter();
+    }
+
+    _maybeReleasePutter() {
+        if (this._putters.length && this._canPut()) {
+            this._putters.shift().set();
+        }
+    }
+
+    /**
+     * Get one result from the fulfilled queue.
+     *
+     * @see [Queue.get]{@link Queue#get}
+     * @throws {*} If [options.allowErrors]{@link UnorderedWorkQueueOptions} is unset and the
+     *             job failed.
+     * @returns {*} The return value from a completed job.
+     */
+    async get() {
+        const {promise} = await this._fulfilled.get();
+        try {
+            return await promise;
+        } catch(e) {
+            if (this._allowErrors) {
+                return e;
+            }
+            throw e;
+        } finally {
+            this._maybeReleasePutter();
+        }
+    }
+
+    /**
+     * @returns {Number} Jobs that have not finished yet or can not be retrieved yet.
+     */
+    pending() {
+        return this._pending.size;
+    }
+
+    /**
+     * @returns {Number} Jobs that are finished but have not be retrieved yet.
+     */
+    fulfilled() {
+        return this._fulfilled.qsize();
     }
 
     /**
      * An async generator that yields the results of completed tasks.  Note that the
-     * {@link BufferedWork} instance itself is also iterable and produces the same
+     * {@link UnorderedWorkQueue} instance itself is also iterable and produces the same
      * results.
      *
      * @generator
      * @yields {*} Return values from completed jobs as soon as they are ready.
      * @example
-     * const bw = new BufferedWork(10);
-     * bw.enqueue(1);
-     * bw.enqueue(2);
-     * for await (const x of bw.asCompleted()) {
+     * const wq = new UnorderedWorkQueue(10);
+     * wq.put(1);
+     * wq.put(2);
+     * for await (const x of wq.asCompleted()) {
      *   console.log(x); // 1
      *                   // 2
      * }
      *
      * // or...
-     * bw.enqueue(1);
-     * bw.enqueue(2);
-     * for await (const x of bw) {
+     * wq.put(1);
+     * wq.put(2);
+     * for await (const x of wq) {
      *   console.log(x); // 1
      *                   // 2
      * }
      */
     async *asCompleted() {
-        while (this.pending.size) {
-            const envelope = await Promise.race([this._waker.wait(), ...this.pending.values()]);
-            if (envelope === true && this._waker.isSet()) {
-                this._waker.clear();
-                continue;
-            }
-            this.pending.delete(envelope.id);
-            if (this._waiters.length) {
-                this._waiters.shift().set();
-            }
-            if (envelope.success || this.permitErrors) {
-                yield envelope.value;
-            } else if (envelope.success === false) {
-                throw envelope.value;
-            } else {
-                throw Error("Internal Error");
-            }
+        while (this._pending.size || this._fulfilled.qsize()) {
+            yield await this.get();
         }
     }
 
@@ -147,6 +196,8 @@ export class RateLimiter {
         this.version = 1;
         this.label = label;
         this.spec = spec;
+        this._lock = new Lock();
+        this._wake = new Event();
         this._init = this._loadState();
     }
 
@@ -202,18 +253,23 @@ export class RateLimiter {
     }
 
     async _loadState() {
-        const state = await this.getState();
-        if (!state || state.version !== this.version) {
-            this.state = {
-                version: this.version,
-                first: Date.now(),
-                last: 0,
-                count: 0,
-                spec: this.spec
-            };
-            await this._saveState();
-        } else {
-            this.state = state;
+        try {
+            await this._lock.acquire();
+            const state = await this.getState();
+            if (!state || state.version !== this.version) {
+                this.state = {
+                    version: this.version,
+                    first: Date.now(),
+                    last: 0,
+                    count: 0,
+                    spec: this.spec
+                };
+                await this._saveState();
+            } else {
+                this.state = state;
+            }
+        } finally {
+            this._lock.release();
         }
     }
 

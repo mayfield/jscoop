@@ -1,7 +1,3 @@
-/**
- * @module queues
- */
-
 import {Future} from './futures.js';
 import * as locks from './locks.js';
 
@@ -38,10 +34,16 @@ export class Queue {
         this._queue = [];
     }
 
+    /**
+     * @protected
+     */
     _get() {
         return this._queue.shift();
     }
 
+    /**
+     * @protected
+     */
     _put(item) {
         return this._queue.push(item);
     }
@@ -78,7 +80,7 @@ export class Queue {
     }
 
     /**
-     *  @returns {boolean} {@link true} if a call to [enqueue]{@link Queue#enqueue} would block.
+     *  @returns {boolean} {@link true} if a call to [put]{@link Queue#put} would block.
      */
     full() {
         if (this._maxsize <= 0) {
@@ -89,70 +91,71 @@ export class Queue {
     }
 
     /**
-     * @typedef {Object} PutOptions
-     * @property {boolean} [noWait] - Set to {@link true} if the call should not block.  If the call
-     *                                can not complete without blocking then {@link QueueFull} is thrown.
-     */
-
-    /**
      * Place a new item in the queue if it is not full.  Otherwise block until space is
-     * available or if {@link options.noWait} is {@link true} throw {@link QueueFull}.
+     * available.
      *
      * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
-     * @param {PutOptions} [options]
      */
-    async put(item, options={}) {
-        if (!options.noWait) {
-            while (this.full()) {
-                const putter = new Future();
-                this._putters.push(putter);
-                try {
-                    await putter;
-                } catch(e) {
-                    if (!this.full()) {
-                        this._wakeupNext(this._putters);
-                    }
-                    throw e;
+    async put(item) {
+        while (this.full()) {
+            const putter = new Future();
+            this._putters.push(putter);
+            try {
+                await putter;
+            } catch(e) {
+                if (!this.full()) {
+                    this._wakeupNext(this._putters);
                 }
+                throw e;
             }
         }
+        return this.putNoWait(item);
+    }
+
+    /**
+     * Place a new item in the queue if it is not full.
+     *
+     * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
+     * @throws {QueueFull}
+     */
+    putNoWait(item) {
         if (this.full()) {
             throw new QueueFull();
         }
         this._put.apply(this, arguments);
-        this._unfinished_tasks++;
+        this._unfinishedTasks++;
         this._finished.clear();
         this._wakeupNext(this._getters);
     }
 
     /**
-     * @typedef {Object} GetOptions
-     * @property {boolean} [noWait] - Set to {@link true} if the call should not block.  If the call
-     *                                can not complete without blocking then {@link QueueEmpty} is thrown.
-     */
-
-    /**
-     * Get an item from the queue if it is not empty.  Otherwise block until an item is available or
-     * if {@link options.noWait} is {@link true} then {@link QueueEmpty} will be thrown.
+     * Get an item from the queue if it is not empty.  Otherwise block until an item is available.
      *
-     * @param {GetOptions} [options]
      * @returns {*} An item from the head of the queue.
      */
-    async get(options={}) {
-        if (!options.noWait) {
-            while (this.empty()) {
-                const getter = new Future();
-                this._getters.push(getter);
-                try {
-                    await getter;
-                } catch(e) {
-                    if (!this.empty()) {
-                        this._wakeupNext(this._getters);
-                    }
-                    throw e;
+    async get() {
+        while (this.empty()) {
+            const getter = new Future();
+            this._getters.push(getter);
+            try {
+                await getter;
+            } catch(e) {
+                if (!this.empty()) {
+                    this._wakeupNext(this._getters);
                 }
+                throw e;
             }
         }
+        return this.getNoWait();
+    }
+
+    /**
+     * Get an item from the queue if it is not empty.
+     *
+     * @throws {QueueEmpty}
+     * @returns {*} An item from the head of the queue.
+     */
+    getNoWait() {
         if (this.empty()) {
             throw new QueueEmpty();
         }
@@ -198,7 +201,7 @@ export class Queue {
  * @extends Queue
  */
 export class PriorityQueue extends Queue {
-    _put(item, _, prio) {
+    _put(item, prio) {
         this._queue.push([prio, item]);
         this._queue.sort((a, b) => b[0] - a[0]);
     }
@@ -209,14 +212,13 @@ export class PriorityQueue extends Queue {
 
     /**
      * Place a new item in the queue if it is not full.  Otherwise block until space is
-     * available or if {@link options.noWait} is {@link true} throw {@link QueueFull}.
+     * available.
      *
-     * @param {Number} prio - The sort order for this item.
      * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
-     * @param {PutOptions} [options]
+     * @param {Number} prio - The sort order for this item.
      */
-    async put(prio, item, options={}) {
-        return await super.put(item, options, prio);
+    async put(item, prio) {
+        return await super.put(item, prio);
     }
 }
 
