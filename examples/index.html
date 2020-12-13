@@ -1,0 +1,76 @@
+<html>
+    <head>
+        <style>
+            button {
+                padding: 0.5em;
+                margin: 0.5em;
+            }
+
+            .source {
+                padding: 0.5em;
+                margin: 0.5em;
+                background: #d5bf59;
+                font-size: 0.8em;
+                max-height: calc(48vh - 10em);
+                overflow: auto;
+            }
+
+            .console {
+                padding: 0.5em;
+                margin: 0.5em;
+                background: #111;
+                color: #f0f0f0;
+                font-size: 0.8em;
+                max-height: calc(48vh - 10em);
+                overflow: auto;
+            }
+
+        </style>
+        <script>
+            const scripts = [];
+            let id = 0;
+            addEventListener('DOMContentLoaded', () => {
+                const logEl = document.querySelector('.console');
+                function logWrap(fn) {
+                    return (...args) => {
+                        logEl.innerHTML += `${(new Date()).toTimeString().split(' ')[0]} ${args.join(' ')}\n`;
+                        logEl.scrollTop = 100000000;
+                        fn(...args);
+                    };
+                }
+                console.log = logWrap(console.log);
+                console.debug = logWrap(console.debug);
+                console.info = logWrap(console.info);
+                console.warn = logWrap(console.warn);
+                console.error = logWrap(console.error);
+                for (const x of document.querySelectorAll('button[data-src]')) {
+                    x.addEventListener('click', async ev => {
+                        const src = ev.target.dataset.src;
+                        const r = await fetch(src);
+                        const code = await r.text();
+                        while (scripts.length) {
+                            scripts.pop().remove();
+                        }
+                        logEl.innerHTML = '';
+                        document.querySelector('.source').innerText = code;
+                        const s = document.createElement('script');
+                        s.src = ev.target.dataset.src + `?_dc=${id++}`;
+                        s.type = 'module';
+                        scripts.push(s);
+                        document.head.appendChild(s);
+                    });
+                }
+            });
+        </script>
+    </head>
+    <body>
+        <p>Click on one of these buttons to load and run the script:</p>
+        <button data-src="workqueue.js">Work Queue</button>
+        <button data-src="ratelimiter.js">Rate Limiter</button>
+        <hr/>
+        <pre class="source"></pre>
+        <hr/>
+        <b>Console:</b>
+        <pre class="console"></pre>
+    </body>
+</html>
