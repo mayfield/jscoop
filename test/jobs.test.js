@@ -138,3 +138,15 @@ test('UnorderedWorkQueue maxFulfilled', async () => {
     expect(wq.fulfilled()).toBe(0);
 });
 
+
+test('UnorderedWorkQueue concurrent put', async () => {
+    const wq = new jobs.UnorderedWorkQueue({maxPending: 2});
+    const f = new Future();
+    const puts = [];
+    for (let i = 0; i < 10; i++) {
+        puts.push(wq.put(f));
+        wq.get();
+    }
+    f.setResult();
+    await Promise.all(puts);
+});
