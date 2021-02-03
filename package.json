@@ -1,6 +1,6 @@
 {
   "name": "jscoop",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Cooperative Multitasking Lock and Jobs Processing",
   "module": "src/coop.js",
   "type": "module",
