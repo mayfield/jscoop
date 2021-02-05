@@ -134,7 +134,7 @@ export class Queue {
      *
      * @param {QueueWaitOptions} [options]
      */
-    async wait(options={}) {
+    async wait(options={}, _callback) {
         const size = options.size == null ? 1 : options.size;
         while (this.size < size) {
             const getter = new Future();
@@ -148,6 +148,9 @@ export class Queue {
                 throw e;
             }
         }
+        if (_callback) {
+            return _callback();
+        }
     }
 
     /**
@@ -157,8 +160,7 @@ export class Queue {
      * @returns {*} An item from the head of the queue.
      */
     async get(options) {
-        await this.wait(options);
-        return this.getNoWait();
+        return await this.wait(options, () => this.getNoWait());
     }
 
     /**
@@ -183,8 +185,7 @@ export class Queue {
      * @returns {Array} An array of items from the queue.
      */
     async getAll(options) {
-        await this.wait(options);
-        return this.getAllNoWait();
+        return await this.wait(options, () => this.getAllNoWait());
     }
 
     /**
@@ -205,12 +206,14 @@ export class Queue {
      *
      * When all dequeued items have been accounted for with an accompanying call to
      * this function [join]{@link Queue#join} will unblock.
+     *
+     * @param {Number} [count=1] - The number of tasks to mark as done.
      */
-    taskDone() {
-        if (this._unfinishedTasks <= 0) {
+    taskDone(count=1) {
+        if (this._unfinishedTasks - count < 0) {
             throw new Error('Called too many times');
         }
-        this._unfinishedTasks--;
+        this._unfinishedTasks -= count;
         if (this._unfinishedTasks === 0) {
             this._finished.set();
         }
