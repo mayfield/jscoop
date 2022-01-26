@@ -14,7 +14,7 @@ try {
 } catch(e) {/*no-pragma*/}
 
 export class Future extends Promise {
-    constructor() {
+    constructor(options={}) {
         let _resolve;
         let _reject;
         super((resolve, reject) => {
@@ -25,7 +25,8 @@ export class Future extends Promise {
         this._reject = _reject;
         this._pending = true;
         this._cancelled = false;
-        if (gcRegistry) {
+        this._trackFinalization = options.trackFinalization && gcRegistry;
+        if (this._trackFinalization) {
             gcRegistry.register(this, (new Error()).stack, this);
         }
     }
@@ -136,7 +137,7 @@ export class Future extends Promise {
 
     _setDone() {
         this._pending = false;
-        if (gcRegistry) {
+        if (this._trackFinalization) {
             gcRegistry.unregister(this);
         }
         this._runCallbacks();

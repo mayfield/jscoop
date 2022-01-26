@@ -156,7 +156,9 @@ export class Queue {
      */
     wait(options={}, _callback) {
         const size = options.size == null ? 1 : options.size;
-        const waiter = new Future();
+        // If this gets GC'd before we set a result on it, it's likely a user error.  They
+        // must be cancelled if not used (i.e. Promise.race([...]))
+        const waiter = new Future({trackFinalization: true});
         if (this.size < size) {
             let getter;
             const scheduleWait = () => {
