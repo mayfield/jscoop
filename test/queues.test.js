@@ -39,3 +39,23 @@ test('Queue multiple pre waits without gets', async () => {
     await q.put(1);
     await w2; // Dont timeout...
 });
+
+test('PriorityQueue out of order num prio', async () => {
+    const q = new queues.PriorityQueue();
+    await q.put('last', 20);
+    await q.put('first', 10);
+    await q.put('middle', 15);
+    expect(await q.get()).toBe('first');
+    expect(await q.get()).toBe('middle');
+    expect(await q.get()).toBe('last');
+});
+
+test('PriorityQueue out of order alpha prio', async () => {
+    const q = new queues.PriorityQueue();
+    await q.put('last', 'C');
+    await q.put('first', 'A');
+    await q.put('middle', 'B');
+    expect(await q.get()).toBe('first');
+    expect(await q.get()).toBe('middle');
+    expect(await q.get()).toBe('last');
+});
