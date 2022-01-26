@@ -16,6 +16,6 @@ docs: $(PACKAGES) $(SRC)
 	npm run docs
 
 lint: $(SRC)
-	$(NPATH)/eslint src
+	$(NPATH)/eslint --ext .mjs src
 
 .PHONY: test lint docs

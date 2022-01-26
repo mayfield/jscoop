@@ -52,7 +52,7 @@ export class Future extends Promise {
             return false;
         }
         this._cancelled = true;
-        this._runCallbacks();
+        this._setDone();
         return true;
     }
 
@@ -129,12 +129,16 @@ export class Future extends Promise {
         if (!this._pending) {
             throw new Error('Already fulfilled');
         }
+        this._result = result;
+        this._setDone();
+        this._resolve(result);
+    }
+
+    _setDone() {
+        this._pending = false;
         if (gcRegistry) {
             gcRegistry.unregister(this);
         }
-        this._result = result;
-        this._pending = false;
-        this._resolve(result);
         this._runCallbacks();
     }
 
@@ -149,13 +153,9 @@ export class Future extends Promise {
         if (!this._pending) {
             throw new Error('Already fulfilled');
         }
-        if (gcRegistry) {
-            gcRegistry.unregister(this);
-        }
         this._error = e;
-        this._pending = false;
         this._reject(e);
-        this._runCallbacks();
+        this._setDone();
     }
 
     _runCallbacks() {

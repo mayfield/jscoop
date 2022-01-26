@@ -20,23 +20,22 @@ test('Queue multiple gets', async () => {
     expect(await g2).toBe(2);
 });
 
-test('Queue multiple pre waits without gets', async () => {
+test('Queue multiple pre waits without gets (strong refs)', async () => {
     const q = new queues.Queue();
     const w1 = q.wait();
     const w2 = q.wait();
     const w3 = q.wait();
+    w2.cancel();
     await q.put(1);
     await q.put(2);
     await w1;
-    await w2;
     await w3; // Dont timeout...
 });
 
-test('Queue multiple waits without gets', async () => {
+test('Queue multiple pre waits without gets', async () => {
     const q = new queues.Queue();
+    q.wait().cancel();
+    const w2 = q.wait();
     await q.put(1);
-    await q.put(2);
-    await q.wait();
-    await q.wait();
-    await q.wait(); // Dont timeout...
+    await w2; // Dont timeout...
 });

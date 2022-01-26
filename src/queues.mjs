@@ -1,6 +1,24 @@
+/* global WeakRef */
+
 import {Future} from './futures.mjs';
 import * as locks from './locks.mjs';
 
+/* We can live without weakref but error detection is worse
+ * and small memory leaks are possible. */
+let MaybeWeakRef;
+try {
+    MaybeWeakRef = WeakRef;
+} catch(e) {
+    class StrongRef {
+        constructor(obj) {
+            this.obj = obj;
+        }
+        unref() {
+            return this.obj;
+        }
+    }
+    MaybeWeakRef = StrongRef;
+}
 
 /**
  * Indicates that the queue is empty.
@@ -55,8 +73,9 @@ export class Queue {
 
     _wakeupNext(waiters) {
         while (waiters.length) {
-            const w = waiters.shift();
-            if (!w.done()) {
+            const ref = waiters.shift();
+            const w = ref.deref();
+            if (w && !w.done()) {
                 w.setResult();
                 break;
             }
@@ -100,7 +119,7 @@ export class Queue {
     async put(item) {
         while (this.full) {
             const putter = new Future();
-            this._putters.push(putter);
+            this._putters.push(new MaybeWeakRef(putter));
             try {
                 await putter;
             } catch(e) {
@@ -133,41 +152,55 @@ export class Queue {
      * Wait for an item to be available.
      *
      * @param {QueueWaitOptions} [options]
+     * @returns {Future} User should cancel the future if they are no longer wanting data.
      */
-    async wait(options={}, _callback) {
+    wait(options={}, _callback) {
         const size = options.size == null ? 1 : options.size;
-        while (this.size < size) {
-            const getter = new Future();
-            this._getters.push(getter);
-            try {
-                await getter;
-            } catch(e) {
-                if (this.size) {
-                    this._wakeupNext(this._getters);
+        const waiter = new Future();
+        if (this.size < size) {
+            let getter;
+            const scheduleWait = () => {
+                getter = new Future();
+                getter.addImmediateCallback(() => {
+                    // We cancelled too, but we only need to check the waiter's state
+                    if (waiter.cancelled()) {
+                        return;
+                    }
+                    if (this.size < size) {
+                        scheduleWait();
+                    } else {
+                        waiter.setResult(_callback ? _callback() : undefined);
+                    }
+                });
+                this._getters.push(new MaybeWeakRef(getter));
+            };
+            scheduleWait();
+            waiter.addImmediateCallback(() => {
+                if (waiter.cancelled()) {
+                    getter.cancel();
                 }
-                throw e;
-            }
+            });
+        } else {
+            waiter.setResult(_callback ? _callback() : undefined);
         }
-        if (_callback) {
-            return _callback();
-        }
+        return waiter;
     }
 
     /**
      * Get an item from the queue if it is not empty.  Otherwise block until an item is available.
      *
      * @param {QueueWaitOptions} [options]
-     * @returns {*} An item from the head of the queue.
+     * @returns {Future(*)} An item from the head of the queue.
      */
-    async get(options) {
-        return await this.wait(options, () => this.getNoWait());
+    get(options) {
+        return this.wait(options, () => this.getNoWait());
     }
 
     /**
      * Get an item from the queue if it is not empty.
      *
      * @throws {QueueEmpty}
-     * @returns {*} An item from the head of the queue.
+     * @returns {Future(*)} An item from the head of the queue.
      */
     getNoWait() {
         if (!this.size) {
@@ -182,10 +215,10 @@ export class Queue {
      * Get all items from the queue.
      *
      * @param {QueueWaitOptions} [options]
-     * @returns {Array} An array of items from the queue.
+     * @returns {Future(Array)} An array of items from the queue.
      */
-    async getAll(options) {
-        return await this.wait(options, () => this.getAllNoWait());
+    getAll(options) {
+        return this.wait(options, () => this.getAllNoWait());
     }
 
     /**
