@@ -1,24 +1,8 @@
-/* global WeakRef */
+/* global */
 
 import {Future} from './futures.mjs';
 import * as locks from './locks.mjs';
 
-/* We can live without weakref but error detection is worse
- * and small memory leaks are possible. */
-let MaybeWeakRef;
-try {
-    MaybeWeakRef = WeakRef;
-} catch(e) {
-    class StrongRef {
-        constructor(obj) {
-            this.obj = obj;
-        }
-        unref() {
-            return this.obj;
-        }
-    }
-    MaybeWeakRef = StrongRef;
-}
 
 /**
  * Indicates that the queue is empty.
@@ -73,9 +57,8 @@ export class Queue {
 
     _wakeupNext(waiters) {
         while (waiters.length) {
-            const ref = waiters.shift();
-            const w = ref.deref();
-            if (w && !w.done()) {
+            const w = waiters.shift();
+            if (!w.done()) {
                 w.setResult();
                 break;
             }
@@ -119,7 +102,7 @@ export class Queue {
     async put(item) {
         while (this.full) {
             const putter = new Future();
-            this._putters.push(new MaybeWeakRef(putter));
+            this._putters.push(putter);
             try {
                 await putter;
             } catch(e) {
@@ -156,10 +139,10 @@ export class Queue {
      */
     wait(options={}, _callback) {
         const size = options.size == null ? 1 : options.size;
-        // If this gets GC'd before we set a result on it, it's likely a user error.  They
-        // must be cancelled if not used (i.e. Promise.race([...]))
-        const waiter = new Future({trackFinalization: true});
         if (this.size < size) {
+            // If `waiter` gets collected before we set a result on it, it's likely a
+            // user error.  They must be cancelled if the result is going to be unused.
+            const waiter = new Future({trackFinalization: true});
             let getter;
             const scheduleWait = () => {
                 getter = new Future();
@@ -174,7 +157,7 @@ export class Queue {
                         waiter.setResult(_callback ? _callback() : undefined);
                     }
                 });
-                this._getters.push(new MaybeWeakRef(getter));
+                this._getters.push(getter);
             };
             scheduleWait();
             waiter.addImmediateCallback(() => {
@@ -182,10 +165,12 @@ export class Queue {
                     getter.cancel();
                 }
             });
+            return waiter;
         } else {
-            waiter.setResult(_callback ? _callback() : undefined);
+            const ready = new Future();
+            ready.setResult(_callback ? _callback() : undefined);
+            return ready;
         }
-        return waiter;
     }
 
     /**

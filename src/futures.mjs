@@ -13,6 +13,7 @@ try {
     });
 } catch(e) {/*no-pragma*/}
 
+
 export class Future extends Promise {
     constructor(options={}) {
         let _resolve;
