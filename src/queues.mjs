@@ -99,7 +99,7 @@ export class Queue {
      *
      * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
      */
-    async put(item) {
+    async put(...args) {
         while (this.full) {
             const putter = new Future();
             this._putters.push(putter);
@@ -112,7 +112,7 @@ export class Queue {
                 throw e;
             }
         }
-        return this.putNoWait(item);
+        return this.putNoWait(...args);
     }
 
     /**
@@ -121,11 +121,11 @@ export class Queue {
      * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
      * @throws {QueueFull}
      */
-    putNoWait(item) {
+    putNoWait(...args) {
         if (this.full) {
             throw new QueueFull();
         }
-        this._put.apply(this, arguments);
+        this._put(...args);
         this._unfinishedTasks++;
         this._finished.clear();
         this._wakeupNext(this._getters);
@@ -133,9 +133,12 @@ export class Queue {
 
     /**
      * Wait for an item to be available.
+     * Users should [cancel]{@link Future#cancel} the returned {@link Future} if they
+     * are no longer wanting data. Such as when used in {@link Promise.race}.
      *
+     * @async
      * @param {QueueWaitOptions} [options]
-     * @returns {Future} User should cancel the future if they are no longer wanting data.
+     * @returns {Future} Resolves when data is available to [get]{@link Queue#get}.
      */
     wait(options={}, _callback) {
         const size = options.size == null ? 1 : options.size;
@@ -174,10 +177,12 @@ export class Queue {
     }
 
     /**
-     * Get an item from the queue if it is not empty.  Otherwise block until an item is available.
+     * Get an item from the queue if it is not empty.  The returned {@link Future} MUST be
+     * cancelled if the caller is no longer wanting the queue item.
      *
+     * @async
      * @param {QueueWaitOptions} [options]
-     * @returns {Future(*)} An item from the head of the queue.
+     * @returns {Future<*>} An item from the head of the queue.
      */
     get(options) {
         return this.wait(options, () => this.getNoWait());
@@ -187,7 +192,7 @@ export class Queue {
      * Get an item from the queue if it is not empty.
      *
      * @throws {QueueEmpty}
-     * @returns {Future(*)} An item from the head of the queue.
+     * @returns {*} An item from the head of the queue.
      */
     getNoWait() {
         if (!this.size) {
@@ -199,10 +204,13 @@ export class Queue {
     }
 
     /**
-     * Get all items from the queue.
+     * Get all items from the queue.  If the queue cannot satisfy the size requirements
+     * then it will block.  The returned {@link Future} MUST be cancelled if the caller
+     * is no longer wanting the queue items.
      *
+     * @async
      * @param {QueueWaitOptions} [options]
-     * @returns {Future(Array)} An array of items from the queue.
+     * @returns {Future<Array<*>>} A {@link Future} that resolves with an {@link Array} of items from the queue.
      */
     getAll(options) {
         return this.wait(options, () => this.getAllNoWait());
@@ -210,6 +218,8 @@ export class Queue {
 
     /**
      * Get all items from the queue without waiting.
+     *
+     * @returns {Array<*>} An {@link Array} of items from the queue.
      */
     getAllNoWait() {
         const items = [];
@@ -260,25 +270,44 @@ export class Queue {
  */
 export class PriorityQueue extends Queue {
     _put(item, prio) {
-        this._queue.push([prio, item]);
-        this._queue.sort((a, b) => b[0] - a[0]);
+        // Minor optimization for head/tail insertion.
+        // Check to see if our new entry can avoid full array sort.  Note that the tail
+        // is highest priority so we can use Array.pop (much faster than shift).
+        if (!this._queue.length || prio < this._queue[this._queue.length - 1][0]) {
+            this._queue.push([prio, item]);
+        } else if (prio > this._queue[0][0]) {
+            this._queue.unshift([prio, item]);
+        } else {
+            this._queue.push([prio, item]);
+            this._queue.sort(([a], [b]) => a < b ? 1 : a == b ? 0 : -1);
+        }
     }
 
     _get() {
         return this._queue.pop()[1];
     }
-
-    /**
-     * Place a new item in the queue if it is not full.  Otherwise block until space is
-     * available.
-     *
-     * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
-     * @param {Number} prio - The sort order for this item.
-     */
-    async put(item, prio) {
-        return await super.put(item, prio);
-    }
 }
+
+// We don't need to override put, but it's worth documenting the params...
+
+/**
+ * Place a new item in the queue if it is not full.  Otherwise block until space is
+ * available.
+ *
+ * @async
+ * @function PriorityQueue#put
+ * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
+ * @param {Number} prio - The sort order for this item.
+ */
+
+/**
+ * Place a new item in the queue if it is not full.
+ *
+ * @function PriorityQueue#putNoWait
+ * @param {*} item - Any object to pass to the caller of [dequeue]{@link Queue#dequeue}.
+ * @param {Number} prio - The sort order for this item.
+ * @throws {QueueFull}
+ */
 
 
 /**

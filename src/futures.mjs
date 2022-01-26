@@ -1,10 +1,4 @@
 /* global FinalizationRegistry */
-/** 
- * A [Promise]{@link external:Promise} like object that allows for easy external fulfillment.
- * Modeled after Python's [asyncio.Future]{@link https://docs.python.org/3/library/asyncio-future.html}
- *
- * @extends external:Promise
- */
 
 let gcRegistry;
 try {
@@ -14,6 +8,14 @@ try {
 } catch(e) {/*no-pragma*/}
 
 
+/**
+ * A [Promise]{@link external:Promise}-like object that allows for easy external fulfillment.
+ * Future objects can also be cancelled to indicate to the fulfiller that the Future is no
+ * longer being used.  Modeled after Python's
+ * [asyncio.Future]{@link https://docs.python.org/3/library/asyncio-future.html}
+ *
+ * @extends external:Promise
+ */
 export class Future extends Promise {
     constructor(options={}) {
         let _resolve;
@@ -44,10 +46,7 @@ export class Future extends Promise {
     /**
      * Cancel the future and run callbacks.
      *
-     * If the Future is already fulfilled or cancelled return false, otherwise
-     * run the callbacks and return true.
-     *
-     * @returns {boolean}
+     * @returns {boolean} {@link true} if {@link Future} was pending, otherwise {@link false}
      */
     cancel() {
         if (!this._pending) {
@@ -68,7 +67,7 @@ export class Future extends Promise {
     }
 
     /**
-     * Indicates if the Future is fullfilled.
+     * Indicates if the Future is fulfilled.
      *
      * @returns {boolean}
      */

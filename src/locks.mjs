@@ -204,7 +204,7 @@ export class Semaphore {
     /**
      * Has the semaphore exhausted all acquisitions.
      *
-     * @returns {boolean} True if it will block an [acquire]{@link Semaphore#acquire}
+     * @returns {boolean} {@link true} if it will block an [acquire]{@link Semaphore#acquire}
      */
     locked() {
         return this._value === 0;
@@ -214,7 +214,7 @@ export class Semaphore {
      * Attempt to acquire one of the available slots in this semaphore.
      * If none are available, wait in line until one is available.
      *
-     * @returns {boolean} true
+     * @returns {boolean} {@link true}
      */
     async acquire() {
         while (this._value <= 0) {
@@ -255,7 +255,7 @@ export class Event {
     }
 
     /**
-     * @returns {boolean} True if [set]{@link Event#set} was called.
+     * @returns {boolean} {@link true} if [set]{@link Event#set} was called.
      */
     isSet() {
         return this._isSet;
@@ -284,7 +284,7 @@ export class Event {
     /**
      * Wait until this event object is triggered with [set]{@link Event#set}.
      *
-     * @returns {boolean} true
+     * @returns {boolean} {@link true}
      */
     async wait() {
         if (this._isSet) {
