@@ -1,4 +1,4 @@
-import * as jobs from '../src/jobs.js';
+import * as jobs from '../src/jobs.mjs';
 
 const bufWork = new jobs.UnorderedWorkQueue({maxPending: 10});
 

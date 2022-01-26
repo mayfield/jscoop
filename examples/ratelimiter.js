@@ -1,4 +1,4 @@
-import * as jobs from '../src/jobs.js';
+import * as jobs from '../src/jobs.mjs';
 
 const rl1 = new jobs.RateLimiter('3/sec', {limit: 20, period: 10000, spread: true});
 const rl2 = new jobs.RateLimiter('30/min', {limit: 33, period: 33000});

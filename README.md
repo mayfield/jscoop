@@ -20,7 +20,7 @@ Usage
 ### NodeJS
 To use this code in NodeJS, `import` the `jscoop` module to get all the
 available functionality, or you can selectively import the sub modules, such as
-`jscoop/locks`, `jscoop/queues`, etc.  See the `src` directory or `src/coop.js`
+`jscoop/locks`, `jscoop/queues`, etc.  See the `src` directory or `src/coop.mjs`
 for details.
 
 ```js
@@ -36,11 +36,11 @@ import * as coop from 'jscoop';
 
 ### Browser
 For a browser you need to place the files somewhere that your web server
-can find them and `import` the full path to the `coop.js` file, or one of
+can find them and `import` the full path to the `coop.mjs` file, or one of
 the other submodules if you only want some of the functionality.
 ```html
 <script type="module">
-    import * as coop from 'jscoop/src/coop.js';
+    import * as coop from 'jscoop/src/coop.mjs';
 
     (async function() {
         const sem = new coop.Semaphore(2);
@@ -87,7 +87,7 @@ async function consumer() {
 
 *locks.Lock* - Browser
 ```js
-import * as locks from 'jscoop/src/locks.js';
+import * as locks from 'jscoop/src/locks.mjs';
 
 (async () => {
     const lock = new locks.Lock();
