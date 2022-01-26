@@ -1,5 +1,5 @@
-import * as jobs from '../src/jobs.js';
-import {Future} from '../src/futures.js';
+import * as jobs from '../src/jobs.mjs';
+import {Future} from '../src/futures.mjs';
 
 /*
 let _t;

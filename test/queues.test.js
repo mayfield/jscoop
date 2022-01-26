@@ -1,4 +1,4 @@
-import * as queues from '../src/queues.js';
+import * as queues from '../src/queues.mjs';
 
 test('Queue sanity', () => {
     new queues.Queue();

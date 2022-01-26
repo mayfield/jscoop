@@ -1,6 +1,5 @@
-
-import {Event, Lock} from './locks.js';
-import {Queue} from './queues.js';
+import {Event, Lock} from './locks.mjs';
+import {Queue} from './queues.mjs';
 
 /**
  * @typedef UnorderedWorkQueueOptions

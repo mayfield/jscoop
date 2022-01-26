@@ -1,6 +1,6 @@
 /* eslint no-unsafe-finally: "off" */
 
-import {Future} from './futures.js';
+import {Future} from './futures.mjs';
 
 
 /**

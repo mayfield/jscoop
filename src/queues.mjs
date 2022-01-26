@@ -1,5 +1,5 @@
-import {Future} from './futures.js';
-import * as locks from './locks.js';
+import {Future} from './futures.mjs';
+import * as locks from './locks.mjs';
 
 
 /**

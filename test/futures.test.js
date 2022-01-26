@@ -1,4 +1,4 @@
-import * as futures from '../src/futures.js';
+import * as futures from '../src/futures.mjs';
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));

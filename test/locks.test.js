@@ -1,4 +1,4 @@
-import * as locks from '../src/locks.js';
+import * as locks from '../src/locks.mjs';
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
