@@ -1,9 +1,18 @@
-/**
+/* global FinalizationRegistry */
+/** 
  * A [Promise]{@link external:Promise} like object that allows for easy external fulfillment.
  * Modeled after Python's [asyncio.Future]{@link https://docs.python.org/3/library/asyncio-future.html}
  *
  * @extends external:Promise
  */
+
+let gcRegistry;
+try {
+    gcRegistry = new FinalizationRegistry(stack => {
+        console.error("Unfinished future detected", stack);
+    });
+} catch(e) {/*no-pragma*/}
+
 export class Future extends Promise {
     constructor() {
         let _resolve;
@@ -15,6 +24,10 @@ export class Future extends Promise {
         this._resolve = _resolve;
         this._reject = _reject;
         this._pending = true;
+        this._cancelled = false;
+        if (gcRegistry) {
+            gcRegistry.register(this, (new Error()).stack, this);
+        }
     }
 
     // Allow use of then/catch chaining.
@@ -24,6 +37,32 @@ export class Future extends Promise {
 
     get [Symbol.toStringTag]() {
         return 'Future';
+    }
+
+    /**
+     * Cancel the future and run callbacks.
+     *
+     * If the Future is already fulfilled or cancelled return false, otherwise
+     * run the callbacks and return true.
+     *
+     * @returns {boolean}
+     */
+    cancel() {
+        if (!this._pending) {
+            return false;
+        }
+        this._cancelled = true;
+        this._runCallbacks();
+        return true;
+    }
+
+    /**
+     * Indicates if the Future was cancelled.
+     *
+     * @returns {boolean}
+     */
+    cancelled() {
+        return this._cancelled;
     }
 
     /**
@@ -46,9 +85,9 @@ export class Future extends Promise {
             throw new Error('Unfulfilled Awaitable');
         }
         if (this._error) {
-            throw self._error;
+            throw this._error;
         }
-        return self._result;
+        return this._result;
     }
 
     /**
@@ -61,7 +100,7 @@ export class Future extends Promise {
         if (this._pending) {
             throw new Error('Unfulfilled Awaitable');
         }
-        return self._error;
+        return this._error;
     }
 
     /**
@@ -90,6 +129,9 @@ export class Future extends Promise {
         if (!this._pending) {
             throw new Error('Already fulfilled');
         }
+        if (gcRegistry) {
+            gcRegistry.unregister(this);
+        }
         this._result = result;
         this._pending = false;
         this._resolve(result);
@@ -106,6 +148,9 @@ export class Future extends Promise {
     setError(e) {
         if (!this._pending) {
             throw new Error('Already fulfilled');
+        }
+        if (gcRegistry) {
+            gcRegistry.unregister(this);
         }
         this._error = e;
         this._pending = false;
