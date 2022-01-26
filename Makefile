@@ -12,6 +12,9 @@ $(PACKAGES): package.json
 test: $(PACKAGES) $(SRC)
 	npm test
 
+test-debug: $(PACKAGES) $(SRC)
+	npm run test-debug
+
 docs: $(PACKAGES) $(SRC)
 	npm run docs
 

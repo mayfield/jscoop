@@ -1,6 +1,6 @@
 {
   "name": "jscoop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Cooperative Multitasking Lock and Jobs Processing",
   "module": "src/coop.js",
   "type": "module",
@@ -13,7 +13,8 @@
   },
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/.bin/jest --config .jest.config.mjs",
-    "docs": "jsdoc -c .jsdoc.conf -P package.json -R README.md src"
+    "test-debug": "node --inspect-brk --experimental-vm-modules node_modules/.bin/jest --runInBand --config .jest.config.mjs",
+    "docs": "jsdoc -c .jsdoc.conf -P package.json -R README.md"
   },
   "keywords": [
     "lock",
@@ -41,8 +42,8 @@
   "homepage": "https://github.com/mayfield/jscoop#readme",
   "devDependencies": {
     "docdash": "1.2.0",
-    "eslint": "7.15.0",
-    "jest": "26.6.3",
-    "jsdoc": "3.6.6"
+    "eslint": "8.7.0",
+    "jest": "27.4.7",
+    "jsdoc": "3.6.10"
   }
 }
