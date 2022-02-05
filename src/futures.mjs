@@ -82,8 +82,11 @@ export class Future extends Promise {
      * @returns {*}
      */
     result() {
+        if (this._cancelled) {
+            throw new Error('Cancelled Future');
+        }
         if (this._pending) {
-            throw new Error('Unfulfilled Awaitable');
+            throw new Error('Unfulfilled Future');
         }
         if (this._error) {
             throw this._error;
@@ -93,13 +96,16 @@ export class Future extends Promise {
 
     /**
      * Return the Error of a fulfilled but rejected Future.  If the Future is not
-     * fulfilled it will throw an Error.
+     * done it will throw an Error.
      *
      * @returns {Error}
      */
     error() {
+        if (this._cancelled) {
+            throw new Error('Cancelled Future');
+        }
         if (this._pending) {
-            throw new Error('Unfulfilled Awaitable');
+            throw new Error('Unfulfilled Future');
         }
         return this._error;
     }

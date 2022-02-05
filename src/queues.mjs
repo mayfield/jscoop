@@ -252,11 +252,19 @@ export class Queue {
     /**
      * Will block until all items are dequeued and for every item that was dequeued a call
      * was made to [taskdone]{@link Queue#taskDone}.
+     *
+     * @async
+     * @returns {Future<boolean>} {@link true}
      */
-    async join() {
+    join() {
+        let f;
         if (this._unfinishedTasks > 0) {
-            await this._finished.wait();
+            f = this._finished.wait();
+        } else {
+            f = new Future();
+            f.setResult(true);
         }
+        return f;
     }
 }
 
