@@ -28,6 +28,7 @@ export class Future extends Promise {
         this._reject = _reject;
         this._pending = true;
         this._cancelled = false;
+        this._callbacks = [];
         this._trackFinalization = options.trackFinalization && gcRegistry;
         if (this._trackFinalization) {
             gcRegistry.register(this, (new Error()).stack, this);
@@ -118,8 +119,8 @@ export class Future extends Promise {
      * @param {Function} callback - A callback that is invoked with this Future.
      */
     addImmediateCallback(callback) {
-        if (this._callbacks === undefined) {
-            this._callbacks = [callback];
+        if (!this._pending) {
+            callback(this);
         } else {
             this._callbacks.push(callback);
         }
@@ -166,10 +167,8 @@ export class Future extends Promise {
     }
 
     _runCallbacks() {
-        if (this._callbacks !== undefined) {
-            for (const cb of this._callbacks) {
-                cb(this);
-            }
+        for (const cb of this._callbacks) {
+            cb(this);
         }
     }
 }
