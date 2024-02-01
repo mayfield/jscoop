@@ -1,6 +1,12 @@
 import {Event, Lock} from './locks.mjs';
 import {Queue} from './queues.mjs';
 
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
 /**
  * @typedef UnorderedWorkQueueOptions
  * @type {Object}
@@ -186,16 +192,16 @@ export class RateLimiter {
      * @param {RateLimiterSpec} spec - The spec to be used if, and only if, a new instance is created.
      * @returns {RateLimiter} A new or existing instance.
      */
-    static async singleton(label, spec) {
+    static async singleton(label, spec, options) {
         if (!rateLimiterInstances[label]) {
-            rateLimiterInstances[label] = new this(label, spec);
+            rateLimiterInstances[label] = new this(label, spec, options);
         }
         const instance = rateLimiterInstances[label];
         await instance._init;
         return instance;
     }
 
-    constructor(label, spec) {
+    constructor(label, spec, options={}) {
         this.version = 2;
         this.label = label;
         this.spec = spec;
@@ -203,6 +209,7 @@ export class RateLimiter {
         this._init = this._loadState();
         this._suspended = false;
         this._resumes = null;
+        this._sleep = options.sleep || sleep;
     }
 
     /**
@@ -334,7 +341,7 @@ export class RateLimiter {
         this._suspended = true;
         this._resumes = Date.now() + ms;
         try {
-            await new Promise(resolve => setTimeout(resolve, ms));
+            await this._sleep(ms);
         } finally {
             this._suspended = false;
             this._resumes = null;
